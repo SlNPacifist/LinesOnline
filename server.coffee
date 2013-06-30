@@ -1,4 +1,5 @@
 express = require('express')
 app = express()
-app.use(express.static('static', {maxAge: 86400000}))
+app.use(express.static('static/img', {maxAge: 86400000}))
+app.use(express.static('static'))
 app.listen(3000)

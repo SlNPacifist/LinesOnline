@@ -19,36 +19,61 @@ Ball = gamvas.Actor.extend
 GameState = gamvas.State.extend
     init: ->
         @gridPosClicks = []
-        @grid = {}
+        @grid = []
         for i in [0...COL_COUNT]
-            for j in [0...LINE_COUNT]
-                @addBall(i, j)
+            @grid.push([])
+        @addRandomBall() for i in [1..5]
         @camera.setPosition(GRID_SIZE * COL_COUNT / 2, GRID_SIZE * LINE_COUNT / 2)
 
+    addRandomBall: ->
+        freePositions = @getFreeGridPositions()
+        posIndex = Math.floor(Math.random() * freePositions.length)
+        [x, y] = freePositions[posIndex]
+        @addBall(x, y)
+
     addBall: (x, y) ->
-        ball = new Ball(false, x * GRID_SIZE, y * GRID_SIZE)
+        [screenX, screenY] = @getScreenPos(x, y)
+        ball = new Ball(false, screenX, screenY)
         @addActor(ball)
-        @grid["#{x}_#{y}"] = ball
+        @grid[x][y] = ball
 
     draw: ->
         for pos in @gridPosClicks
             [x, y] = pos
-            @setActiveBall(@getBallByGridPos(x, y))
+            if @grid[x][y]
+                @setActiveBall(@grid[x][y])
+            else if @activeBall
+                @setBallPos(@activeBall, x, y)
+                @setActiveBall(null)
         @gridPosClicks = []
-
-    getBallByGridPos: (x, y) ->
-        @grid["#{x}_#{y}"]
 
     setActiveBall: (ball) ->
         @activeBall?.setState('usual')
         @activeBall = ball
-        ball.setState('active')
+        ball?.setState('active')
+
+    setBallPos: (ball, x, y) ->
+        [oldX, oldY] = @getGridPos(ball.position.x, ball.position.y)
+        @grid[oldX][oldY] = null
+        [screenX, screenY] = @getScreenPos(x, y)
+        ball.setPosition(screenX, screenY)
+        @grid[x][y] = ball
+
+    getFreeGridPositions: ->
+        res = []
+        for i in [0...COL_COUNT]
+            for j in [0...LINE_COUNT] when not @grid[i][j]
+                res.push([i, j])
+        return res
 
     getGridPos: (x, y) ->
         x = Math.floor(x / GRID_SIZE)
         y = Math.floor(y / GRID_SIZE)
         return [x, y] if 0 <= x < COL_COUNT and 0 <= y < LINE_COUNT
         return null
+
+    getScreenPos: (x, y) ->
+        [x * GRID_SIZE, y * GRID_SIZE]
 
     onMouseDown: (b, x, y) ->
         return if b isnt gamvas.mouse.LEFT
