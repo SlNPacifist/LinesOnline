@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>A* pathfinding on grid</title>
+        <script src="../../js/gamvas.debug.js"></script>
+        <script src="PathfindingGrid.js"></script>
+        <script src="UserInterface.js"></script>
+        <link rel="stylesheet" type="text/css" href="../common/style.css" />
+        <script type="text/javascript" src="../common/syntaxhighlighter/scripts/shCore.js"></script>
+        <script type="text/javascript" src="../common/syntaxhighlighter/scripts/shBrushJScript.js"></script>
+        <link type="text/css" rel="stylesheet" href="../common/syntaxhighlighter/styles/shCoreDefault.css"/>
+        <script type="text/javascript">SyntaxHighlighter.all();</script>
+    </head>
+    <body>
+        <h1>Grid based A* path finding</h1>
+        <div><label><input onchange="setDiagonal();" type="checkbox" value="1" id="allowDiagonal" /> Allow diagonal steps?</label> <button onclick="redraw();">Find new path</button></div>
+        <div><canvas id="demo" width="640" height="480"></canvas></div>
+        <pre class="brush: js">
+        // initialisation
+        //
+        // create grid
+        this.field = new gamvas.AStarGrid(20, 20, this.allowDiagonal, false, gamvas.AStar.STRATEGY_IGNORE_STEPS);
+
+        // fill our grid with random data (&lt; 0 means not walkable, &gt;= 0 is a height field
+        for (var y = 0; y < 20; y++) {
+            for (var x = 0; x < 20; x++) {
+                var v = parseInt(Math.random()*6, 10)-1;
+                this.field.setValue(x, y, v);
+            }
+        }
+
+        // find
+        this.currentResult = this.field.find(0, this.startY, 19, this.endY);
+        </pre>
+    </body>
+</html>

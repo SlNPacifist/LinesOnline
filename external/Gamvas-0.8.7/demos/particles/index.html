@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Gamvas Demo</title>
+        <script src="../../js/gamvas.debug.js"></script>
+        <script src="misc.js"></script>
+        <script src="rainemitter.js"></script>
+        <script src="rainstate.js"></script>
+        <script src="smokeemitter.js"></script>
+        <script src="smokestate.js"></script>
+        <script src="explosionemitter.js"></script>
+        <script src="explosionstate.js"></script>
+        <script src="101_particles.js"></script>
+        <link rel="stylesheet" type="text/css" href="../common/style.css" />
+        <script type="text/javascript" src="../common/syntaxhighlighter/scripts/shCore.js"></script>
+        <script type="text/javascript" src="../common/syntaxhighlighter/scripts/shBrushJScript.js"></script>
+        <link type="text/css" rel="stylesheet" href="../common/syntaxhighlighter/styles/shCoreDefault.css"/>
+        <script type="text/javascript">SyntaxHighlighter.all();</script>
+    </head>
+    <body>
+            <h1>Particle demo</h1>
+            <p>Press space on your keyboard to switch to next effect.</p>
+            <div id="fullscreen"></div>
+        <div id="container">
+            <canvas id="gameCanvas" width="640" height="480"></canvas>
+        </div>
+        <p>Please see the full source from the Gamvas archive. As
+            example here is the smoke emitter:</p>
+        <pre class="brush: js">
+smokeEmitter = gamvas.ParticleEmitter.extend({
+    // overwrite constructor
+	create: function(name, x, y, img, anim) {
+        // call super constructor
+		this._super(name, x, y, img, anim);
+
+        // load the image, set center to middle
+		var st = gamvas.state.getCurrentState();
+		var smokeimg = new gamvas.Image(st.resource.getImage('media/smoke.png'));
+		smokeimg.setCenter(32, 32);
+		this.setImage(smokeimg);
+
+        // point upward
+        this.setRotation(Math.PI);
+        // give the nozzle a little spreading angle
+        this.setRotationRange(0.2);
+        // particles start with a random rotation (0-360 degrees);
+        this.setParticleRotationRange(2*Math.PI);
+        // particles continue to rotate slowly (0.5 radians per seconds)
+        this.setParticleRotationVelocityRange(0.5);
+        // move with 50 pixels per second
+        this.setParticleSpeed(50);
+        // make the particles reduce its speed slowly
+        this.setParticleVelocityDamping(0.08);
+        // quickly fade in to alpha 0.1, then on 60% 0.3
+        // then slowly back to 0.1 at 90% lifetime
+        // and fade out
+        this.setAlphaTable([ [0.0, 0.0], [0.03, 0.1], [0.6, 0.3], [0.9, 0.1], [1.0, 0.0]]);
+        // start with pretty big images, then slowly fade to 100% size at
+        // 70% lifetime, then even scale to 150% until end of lifetime
+        this.setScaleTable([ [0.0, 0.7], [0.7, 1.0], [1.0, 1.5] ]);
+        // particles live 10 seconds
+        this.setParticleLifeTime(10);
+    }
+});
+</pre>
+    </body>
+</html>
+

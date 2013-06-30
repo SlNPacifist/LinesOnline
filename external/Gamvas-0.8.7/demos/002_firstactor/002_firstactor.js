@@ -1,0 +1,65 @@
+// define our main actor state by extending gamvas.ActorState
+mainActorState = gamvas.ActorState.extend({
+    init: function() {
+        // define our local variables
+        this.counter = 0;
+    },
+
+    // this is the actors brain, t is time in seconds since last tought
+    update: function(t) {
+        // count up PI per second, which means we will move
+        // one second up, one second down, as 360 degrees is 2*Math.PI in
+        // radians
+        this.counter += Math.PI*t;
+
+        // clamp our counter to 360 degrees aka 2*Math.PI in radians
+        if (this.counter > 2*Math.PI) {
+                this.counter -= 2*Math.PI;
+        }
+
+        // move our actor the sin value of counter, which gives him
+        // a smooth circular motion
+        this.actor.move(0, -10*Math.sin(this.counter));
+    }
+});
+
+// define our actor class by extending gamvas.Actor
+mainActor = gamvas.Actor.extend({
+    // we add a extra parameter name file, which a normal gamvas.Actor does not have.
+    // this is a little trick, so we can use the state wide resource handler to
+    // load the image. see below.
+    create: function(name, x, y, file) {
+        // IMPORTANT! initialize our actor by calling the super class constructor
+        this._super(name, x, y);
+
+        // get the current state, so we cann acess its resource loader with st.resource
+        var st = gamvas.state.getCurrentState();
+
+        // use the resource loader set the Gamvas logo as its single image
+        // every state has predefined variables, one of them is .resource, which is the resource handler
+        this.setFile(st.resource.getImage('http://gamvas.com/lib/images/gamvaslogo.png'));
+
+        // set the actors center point to its lower center
+        this.setCenter(255/2, 70);
+
+        // finally add the state to our actor
+        this.addState(new mainActorState('main'));
+
+        // and switch to it (actors have a default state which does nothing)
+        this.setState('main');
+    }
+});
+
+// define our game state by extending gamvas.State
+mainState = gamvas.State.extend({
+        init: function() {
+            // add our actor the the current game state, so we don't need to draw it ourself
+            this.addActor(new mainActor('myactor', 0, 240));
+        }
+});
+
+// start up the game on canvas with id gameCanvas
+gamvas.event.addOnLoad(function() {
+    gamvas.state.addState(new mainState('main'));
+    gamvas.start('gameCanvas');
+});

@@ -1,0 +1,1 @@
+../external/Gamvas-0.8.7/js/gamvas.debug.js

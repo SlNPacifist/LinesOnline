@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+        <title>Gamvas Accelerometer Demo</title>
+        <script src="../../js/gamvas.js"></script>
+        <script src="accelerometer.js"></script>
+        <link rel="stylesheet" type="text/css" href="../common/style.css" />
+        <script type="text/javascript" src="../common/syntaxhighlighter/scripts/shCore.js"></script>
+        <script type="text/javascript" src="../common/syntaxhighlighter/scripts/shBrushJScript.js"></script>
+        <link type="text/css" rel="stylesheet" href="../common/syntaxhighlighter/styles/shCoreDefault.css"/>
+        <script type="text/javascript">SyntaxHighlighter.all();</script>
+    </head>
+    <body>
+            <h1>Gamvas multitouch demo</h1>
+            <p>This demo only works if viewed with a device supporting tilt/acceleration like Android phones and Android tablets, iPhone, iPad, ...</p>
+            <p>Hold the device in front of you and rotate it like a steering wheel.</p>
+        <div id="container">
+            <canvas id="gameCanvas" width="640" height="480"></canvas>
+        </div>
+        <pre class="brush: js">
+motionState = gamvas.State.extend({
+    init: function() {
+        // set our graphic
+		this.actor = new gamvas.Actor('actor');
+		this.actor.center.x = 381/2;
+		this.actor.center.y = 381/2;
+		this.actor.setFile(this.resource.getImage('wheel.png'), 381, 381);
+    },
+
+    draw: function(t) {
+        // draw it
+        this.actor.draw(t);
+    },
+
+    onOrientation: function(alpha, beta, gamma) {
+        // alpha is the rotation around z (as in a steering wheel) in degrees, centered on 180
+        // note that the center is not on all devices on 180, you should always
+        // give the user a way to calibrate its device and then calculate in the device
+        // specific offset. For purpose of demonstration we keep it simple
+        this.actor.setRotation(gamvas.math.degToRad((alpha-180)));
+    }
+});
+
+gamvas.event.addOnLoad(function() {
+    gamvas.state.addState(new motionState('motiondemo'));
+    gamvas.start('gameCanvas');
+});
+</pre>
+    </body>
+</html>
+

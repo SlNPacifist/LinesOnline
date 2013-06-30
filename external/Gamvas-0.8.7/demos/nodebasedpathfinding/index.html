@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Node based path finding</title>
+        <script src="../../js/gamvas.js"></script>
+        <script src="NodeBasedPathFinding.js"></script>
+        <link rel="stylesheet" type="text/css" href="../common/style.css" />
+        <script type="text/javascript" src="../common/syntaxhighlighter/scripts/shCore.js"></script>
+        <script type="text/javascript" src="../common/syntaxhighlighter/scripts/shBrushJScript.js"></script>
+        <link type="text/css" rel="stylesheet" href="../common/syntaxhighlighter/styles/shCoreDefault.css"/>
+        <script type="text/javascript">SyntaxHighlighter.all();</script>
+    </head>
+    <body>
+        <h1>Node based A* path finding</h1>
+        <p><strong>Note:</strong> Under certain conditions it looks like the algorithm sometimes does not
+            work 100% correct, this is because i tried to keep code in the demo
+            to a minimum. In real life scenarios you should always try to set
+            waypoints quite dense, so you get a more even distribution
+            of the waypoints. Try to avoid long connections, they will lead to
+            unrealitic behaviour. Also note, that there is no collision detection
+            with the background, you can set your start/end everywhere, in a real
+            game you would have to ensure, that start/end is only set where the
+            player can actually walk to.</p>
+        <div id="container">
+            <canvas id="gameCanvas" width="640" height="480"></canvas>
+        </div>
+        <pre class="brush: js">
+        // initialize:
+        //
+        // create the map
+        this.map = new gamvas.AStarMap();
+        // create a node on its position
+        var n1 = new gamvas.AStarNode(55, 104);
+        // add it to the map
+        this.map.add(n1);
+        var n2 = new gamvas.AStarNode(172, 104);
+        // do not forget to connect nodes
+        this.map.add(n2);
+        n1.connect(n2);
+
+        // find:
+        //
+        this.path = this.map.find(this.start.x, this.start.y, this.end.x, this.end.y);
+    </pre>
+    </body>
+</html>

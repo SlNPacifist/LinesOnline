@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Gamvas Player Controlled Physics Objects</title>
+        <script src="../../js/Box2dWeb-2.1.a.3.min.js"></script>
+        <script src="../../js/gamvas.js"></script>
+        <script src="main.js"></script>
+        <script type="text/javascript" src="../common/syntaxhighlighter/scripts/shCore.js"></script>
+        <script type="text/javascript" src="../common/syntaxhighlighter/scripts/shBrushJScript.js"></script>
+        <link type="text/css" rel="stylesheet" href="../common/syntaxhighlighter/styles/shCoreDefault.css"/>
+        <script type="text/javascript">SyntaxHighlighter.all();</script>
+    </head>
+    <body>
+        <h1>Gamvas Player Controlled Physics Objects</h1>
+        <p>Demonstrates using physics objects that move by player (or AI) interaction</p>
+        <p>Move mouse to move the violet ball, which is a KINEMATIC object positioned absolute by mouse position.</p>
+        <p>Cursor keys move the blue ball, which is a DYNAMIC object with forces applied to it.</p>
+        <canvas id="gameCanvas" width="640" height="480"></canvas>
+        <p>Following code shows the handling of the mouse controlled kinematic violet ball:</p>
+        <pre class="brush: js">
+// the 'brain' of the mouse controlled KINEMATIC body
+mouseState = gamvas.ActorState.extend({
+	onMouseMove: function(x, y, ev) {
+        // set position according to mouse position
+        var st = gamvas.state.getCurrentState();
+        // use mouseposition in world coordinates, instead of screen coordinates
+        var worldMouse = st.camera.toWorld(x, y);
+        this.actor.setPosition(worldMouse.x, worldMouse.y);
+    }
+});
+
+// the mouse controlled ball (violet)
+mouse = gamvas.Actor.extend({
+        create: function(name, x, y) {
+            this._super(name, x, y);
+
+            var st = gamvas.state.getCurrentState();
+            this.setFile(st.resource.getImage('mouse.png'));
+            this.restitution = 0.4;
+            // gamvas.physics.KINEMATIC describes objects, that are not
+            // under physics control, but are part of the physics world
+            // so objects will collide with KINEMATIC objects
+            //
+            // other then STATIC objects, you may move KINEMATIC objects
+            this.bodyCircle(this.position.x, this.position.y, 16, gamvas.physics.KINEMATIC);
+
+            // mouse can move fast, so lets ensure that collisions are detected
+            // even when user moves mouse at a speed where it would jump over
+            // barriers
+            this.setBullet(true);
+
+            // insert brain, aka add and set playerState
+            this.addState(new mouseState('brain'));
+            this.setState('brain');
+
+            // make our actor receive mouse and keyboard events
+            st.registerInputEvents(this);
+        }
+});
+        </pre>
+    </body>
+</html>
