@@ -22,8 +22,11 @@ GameState = gamvas.State.extend
         @grid = []
         for i in [0...COL_COUNT]
             @grid.push([])
-        @addRandomBall() for i in [1..5]
+        @addRandomBalls(5)
         @camera.setPosition(GRID_SIZE * COL_COUNT / 2, GRID_SIZE * LINE_COUNT / 2)
+
+    addRandomBalls: (num) ->
+        @addRandomBall() for i in [1..num]
 
     addRandomBall: ->
         freePositions = @getFreeGridPositions()
@@ -45,6 +48,7 @@ GameState = gamvas.State.extend
             else if @activeBall
                 @setBallPos(@activeBall, x, y)
                 @setActiveBall(null)
+                @addRandomBalls(3)
         @gridPosClicks = []
 
     setActiveBall: (ball) ->
