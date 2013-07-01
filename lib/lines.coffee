@@ -1,11 +1,6 @@
 GRID_SIZE = 26
 COL_COUNT = 9
 LINE_COUNT = 9
-# List of possible directions to check lines from newly appeared ball
-# list of [dx, dy]
-LINE_DIRECTIONS = [[-1, 0], [-1, -1], [0, -1], [1, -1]]
-# Minimum number of successive balls in a line that are removed from field
-MIN_LINE_LENGTH = 5
 
 ActiveBallState = gamvas.ActorState.extend
     enter: ->
@@ -22,6 +17,12 @@ Ball = gamvas.Actor.extend
         @addState(new UsualBallState('usual'), true)
 
 class BallGrid
+    # List of possible directions to check lines from newly appeared ball
+    # list of [dx, dy]
+    LINE_DIRECTIONS: [[-1, 0], [-1, -1], [0, -1], [1, -1]]
+    # Minimum number of successive balls in a line that are removed from field
+    MIN_LINE_LENGTH: 5
+
     constructor: (@width, @height, @parent) ->
         @container = []
         for i in [0...@width]
@@ -46,11 +47,11 @@ class BallGrid
     checkLinesRemovalInPosition: (x, y) ->
         # Check lines for all possible directions
         linesToRemove = []
-        for [dx, dy] in LINE_DIRECTIONS
+        for [dx, dy] in @LINE_DIRECTIONS
             dirCount = @getMaxBallCount(x, y, dx, dy)
             oppositeDirCount = @getMaxBallCount(x, y, -dx, -dy)
             totalCount = dirCount + oppositeDirCount + 1
-            continue if totalCount < MIN_LINE_LENGTH
+            continue if totalCount < @MIN_LINE_LENGTH
             # mark line for removal
             # do not remove it now, because it could fail further checks
             startX = x + dx * dirCount
