@@ -1,6 +1,11 @@
 GRID_SIZE = 26
 COL_COUNT = 9
 LINE_COUNT = 9
+# List of possible directions to check lines from newly appeared ball
+# list of [dx, dy]
+LINE_DIRECTIONS = [[-1, 0], [-1, -1], [0, -1], [1, -1]]
+# Minimum number of successive balls in a line that are removed from field
+MIN_LINE_LENGTH = 5
 
 ActiveBallState = gamvas.ActorState.extend
     enter: ->
@@ -39,6 +44,7 @@ GameState = gamvas.State.extend
         ball = new Ball(false, screenX, screenY)
         @addActor(ball)
         @grid[x][y] = ball
+        @checkLinesRemovalInPosition(x, y)
 
     draw: ->
         for pos in @gridPosClicks
@@ -62,6 +68,7 @@ GameState = gamvas.State.extend
         [screenX, screenY] = @getScreenPos(x, y)
         ball.setPosition(screenX, screenY)
         @grid[x][y] = ball
+        @checkLinesRemovalInPosition(x, y)
 
     getFreeGridPositions: ->
         res = []
@@ -78,6 +85,55 @@ GameState = gamvas.State.extend
 
     getScreenPos: (x, y) ->
         [x * GRID_SIZE, y * GRID_SIZE]
+
+    checkLinesRemovalInPosition: (x, y) ->
+        # Check lines for all possible directions
+        linesToRemove = []
+        for [dx, dy] in LINE_DIRECTIONS
+            dirCount = @getMaxBallCount(x, y, dx, dy)
+            oppositeDirCount = @getMaxBallCount(x, y, -dx, -dy)
+            continue if dirCount + oppositeDirCount + 1 < MIN_LINE_LENGTH
+            # mark line for removal
+            # do not remove it now, because it could fail successive checks
+            startX = x + dx * dirCount
+            startY = y + dy * dirCount
+            endX = x - dx * oppositeDirCount
+            endY = y - dy * oppositeDirCount
+            linesToRemove.push([startX, startY, endX, endY])
+        @removeLine(line...) for line in linesToRemove
+
+    getDirection: (start, end) ->
+        return 0 if start is end
+        return 1 if end > start
+        return -1 if end < start
+
+    removeLine: (startX, startY, endX, endY) ->
+        dx = @getDirection(startX, endX)
+        dy = @getDirection(startY, endY)
+        curX = startX
+        curY = startY
+        @removeBall(curX, curY)
+        while (curX isnt endX) or (curY isnt endY)
+            curX += dx
+            curY += dy
+            @removeBall(curX, curY)
+
+    removeBall: (x, y) ->
+        return if not @grid[x][y]
+        @removeActor(@grid[x][y])
+        @grid[x][y] = null
+
+    getMaxBallCount: (x, y, dx, dy) ->
+        # Counts number of successive balls in a line starting from x, y in a direction dx, dy
+        # Does not count ball at x, y
+        res = 0
+        x += dx
+        y += dy
+        while 0 <= x < COL_COUNT and 0 <= y < LINE_COUNT and @grid[x][y]
+            res++
+            x += dx
+            y += dy
+        return res
 
     onMouseDown: (b, x, y) ->
         return if b isnt gamvas.mouse.LEFT
