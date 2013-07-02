@@ -31,11 +31,16 @@ class BallGrid
     LINE_DIRECTIONS: [[-1, 0], [-1, -1], [0, -1], [1, -1]]
     # Minimum number of successive balls in a line that are removed from field
     MIN_LINE_LENGTH: 5
+    # List of possible cells that can be reached from current
+    REACHABLE_CELLS: [[-1, 0], [0, -1], [1, 0], [0, 1]]
 
     constructor: (@width, @height, @parent) ->
-        @container = []
-        for i in [0...@width]
-            @container.push([])
+        @container = @getGrid(@width)
+
+    getGrid: (width) ->
+        res = []
+        res.push([]) for i in [0...width]
+        return res
 
     add: (x, y, ball) ->
         @container[x][y] = ball
@@ -89,6 +94,28 @@ class BallGrid
             else curY = startY
             @parent.removeBall(curX, curY)
 
+    getReachGrid: (x, y) ->
+        # Returns grid that contains number of needed steps to reach each cell
+        res = @getGrid(@width)
+        res[x][y] = 0
+        cellQueue = [[x, y]]
+        while cellQueue.length
+            [x, y] = cellQueue.shift()
+            nextStepCount = res[x][y] + 1
+            for [dx, dy] in @REACHABLE_CELLS
+                newX = x + dx
+                newY = y + dy
+                continue if not (0 <= newX < @width) or not (0 <= newY < @height)
+                continue if res[newX][newY] isnt undefined
+                continue if @container[newX][newY]
+                res[newX][newY] = nextStepCount
+                cellQueue.push([newX, newY])
+        return res
+
+    canReach: (startX, startY, endX, endY) ->
+        grid = @getReachGrid(startX, startY)
+        return grid[endX][endY]?
+
 
 GameState = gamvas.State.extend
     init: ->
@@ -120,6 +147,8 @@ GameState = gamvas.State.extend
             if ball = @grid.get(x, y)
                 @setActiveBall(ball)
             else if @activeBall
+                [activeX, activeY] = @getGridPos(@activeBall.position.x, @activeBall.position.y)
+                continue if not @grid.canReach(activeX, activeY, x, y)
                 @setBallPos(@activeBall, x, y)
                 @setActiveBall(null)
                 @addRandomBalls(3)
