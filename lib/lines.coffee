@@ -55,10 +55,11 @@ class BallGrid
 
     checkLinesRemovalInPosition: (x, y) ->
         # Check lines for all possible directions
+        color = @container[x][y].color
         linesToRemove = []
         for [dx, dy] in @LINE_DIRECTIONS
-            dirCount = @getMaxBallCount(x, y, dx, dy)
-            oppositeDirCount = @getMaxBallCount(x, y, -dx, -dy)
+            dirCount = @getMaxBallCount(x, y, dx, dy, color)
+            oppositeDirCount = @getMaxBallCount(x, y, -dx, -dy, color)
             totalCount = dirCount + oppositeDirCount + 1
             continue if totalCount < @MIN_LINE_LENGTH
             # mark line for removal
@@ -68,13 +69,13 @@ class BallGrid
             linesToRemove.push([startX, startY, -dx, -dy, totalCount])
         @removeLine(line...) for line in linesToRemove
 
-    getMaxBallCount: (x, y, dx, dy) ->
+    getMaxBallCount: (x, y, dx, dy, neededColor) ->
         # Counts number of successive balls in a line starting from x, y in a direction dx, dy
         # Does not count ball at x, y
         res = 0
         x += dx
         y += dy
-        while 0 <= x < @width and 0 <= y < @height and @container[x][y]
+        while 0 <= x < @width and 0 <= y < @height and (ball = @container[x][y]) and (ball.color is neededColor)
             res++
             x += dx
             y += dy
