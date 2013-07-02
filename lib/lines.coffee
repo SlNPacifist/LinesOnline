@@ -1,18 +1,27 @@
-GRID_SIZE = 26
+GRID_SIZE = 50
+BALL_SIZE = 48
+BALL_ANIMATION_FRAME_COUNT = 8
+BALL_ANIMATION_FPS = 10
 COL_COUNT = 9
 LINE_COUNT = 9
 
+BALL_COLORS = ['blue', 'brown', 'pink', 'red', 'teal', 'yellow']
+
 ActiveBallState = gamvas.ActorState.extend
     enter: ->
-        @actor.setFile(gamvas.state.getCurrentState().resource.getImage('active_ball.png'))
+        @actor.setAnimation('active')
 
 UsualBallState = gamvas.ActorState.extend
     enter: ->
-        @actor.setFile(gamvas.state.getCurrentState().resource.getImage('ball.png'))
+        @actor.setAnimation('usual')
 
 Ball = gamvas.Actor.extend
-    create: (name, x, y) ->
+    create: (name, x, y, @color) ->
         @_super(name, x, y)
+        imageName = @color + '.png'
+        resource = gamvas.state.getCurrentState().resource
+        @addAnimation(new gamvas.Animation('active', resource.getImage(imageName), BALL_SIZE, BALL_SIZE, BALL_ANIMATION_FRAME_COUNT, BALL_ANIMATION_FPS))
+        @addAnimation(new gamvas.Animation('usual', resource.getImage(imageName), BALL_SIZE, BALL_SIZE, 1))
         @addState(new ActiveBallState('active'))
         @addState(new UsualBallState('usual'), true)
 
@@ -94,11 +103,13 @@ GameState = gamvas.State.extend
         freePositions = @grid.getFreePositions()
         posIndex = Math.floor(Math.random() * freePositions.length)
         [x, y] = freePositions[posIndex]
-        @addBall(x, y)
+        colorIndex = Math.floor(Math.random() * BALL_COLORS.length)
+        color = BALL_COLORS[colorIndex]
+        @addBall(x, y, color)
 
-    addBall: (x, y) ->
+    addBall: (x, y, color) ->
         [screenX, screenY] = @getScreenPos(x, y)
-        ball = new Ball(false, screenX, screenY)
+        ball = new Ball(false, screenX, screenY, color)
         @addActor(ball)
         @grid.add(x, y, ball)
 
