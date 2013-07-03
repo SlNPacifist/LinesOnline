@@ -5,7 +5,7 @@ BALL_ANIMATION_FPS = 10
 COL_COUNT = 9
 LINE_COUNT = 9
 
-BALL_COLORS = ['blue', 'brown', 'pink', 'red', 'teal', 'yellow']
+BALL_COLORS = ['blue', 'green', 'pink', 'red', 'teal', 'yellow']
 
 ActiveBallState = gamvas.ActorState.extend
     enter: ->
