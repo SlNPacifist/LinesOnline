@@ -28,7 +28,7 @@ UsualBallState = gamvas.ActorState.extend
         @actor.setAnimation('usual')
 
 Ball = gamvas.Actor.extend
-    create: (name, x, y, @color) ->
+    create: (name, x, y, @color, @gridX, @gridY) ->
         @_super(name, x, y)
         imageName = @color + '.png'
         resource = gamvas.state.getCurrentState().resource
@@ -173,28 +173,28 @@ GameState = gamvas.State.extend
         res = []
         freePositions = @grid.getFreePositions()
         for i in [1..num]
-            [x, y] = extractRandom(freePositions)
+            [gridX, gridY] = extractRandom(freePositions)
             colorIndex = Math.floor(Math.random() * BALL_COLORS.length)
             color = BALL_COLORS[colorIndex]
-            res.push(@createBall(x, y, color))
+            res.push(@createBall(gridX, gridY, color))
         return res
 
-    createBall: (x, y, color) ->
-        [screenX, screenY] = @getBallScreenPos(x, y)
-        return new Ball(false, screenX, screenY, color)
+    createBall: (gridX, gridY, color) ->
+        return new Ball(false, 0, 0, color, gridX, gridY)
 
     addBallsToGrid: (balls) ->
         @addBallToGrid(ball) for ball in balls
 
     addBallToGrid: (ball) ->
+        @updateBallScreenPos(ball)
         @addActor(ball)
-        [x, y] = @getGridPos(ball.position.x, ball.position.y)
-        @grid.add(x, y, ball)
+        @grid.add(ball.gridX, ball.gridY, ball)
 
     prepareBallsToAdd: ->
         newBalls = @createRandomBalls(BALL_COUNT_PER_MOVE)
         for ball in newBalls
             ball.setState('prepared')
+            @updateBallScreenPos(ball)
             @addActor(ball)
             @preparedBalls.push(ball)
 
@@ -209,8 +209,7 @@ GameState = gamvas.State.extend
             if ball = @grid.get(x, y)
                 @setActiveBall(ball)
             else if @activeBall
-                [activeX, activeY] = @getGridPos(@activeBall.position.x, @activeBall.position.y)
-                continue if not @grid.canReach(activeX, activeY, x, y)
+                continue if not @grid.canReach(@activeBall.gridX, @activeBall.gridY, x, y)
                 lineRemoved = @setBallPos(@activeBall, x, y)
                 @setActiveBall(null)
                 continue if lineRemoved
@@ -222,23 +221,20 @@ GameState = gamvas.State.extend
         freePositions = @grid.getFreePositions()
         for ball in fixedBalls
             # Removed fixed ball's position from list of possible positions
-            [x, y] = @getGridPos(ball.position.x, ball.position.y)
-            for [curX, curY], index in freePositions when curX is x and curY is y
-                break
+            for [curX, curY], index in freePositions
+                break if curX is ball.gridX and curY is ball.gridY
             freePositions[index..index] = []
         for ball in ballsToReplace
             # Find new place for ball
-            [x, y] = extractRandom(freePositions)
-            [screenX, screenY] = @getBallScreenPos(x, y)
-            ball.setPosition(screenX, screenY)
+            [ball.gridX, ball.gridY] = extractRandom(freePositions)
+            @updateBallScreenPos(ball)
 
     addPreparedBalls: ->
         ballsToReplace = []
         fixedBalls = []
         for ball in @preparedBalls
             ball.setState('usual')
-            [x, y] = @getGridPos(ball.position.x, ball.position.y)
-            if @grid.get(x, y)
+            if @grid.get(ball.gridX, ball.gridY)
                 ballsToReplace.push(ball)
             else
                 fixedBalls.push(ball)
@@ -256,10 +252,10 @@ GameState = gamvas.State.extend
         Sets ball position
         Returns true if any line was removed due to this action
         ###
-        [oldX, oldY] = @getGridPos(ball.position.x, ball.position.y)
-        @grid.remove(oldX, oldY)
-        [screenX, screenY] = @getBallScreenPos(x, y)
-        ball.setPosition(screenX, screenY)
+        @grid.remove(ball.gridX, ball.gridY)
+        ball.gridX = x
+        ball.gridY = y
+        @updateBallScreenPos(ball)
         return @grid.add(x, y, ball)
 
     getGridPos: (x, y) ->
@@ -271,10 +267,10 @@ GameState = gamvas.State.extend
     getCellScreenPos: (x, y) ->
         [x * CELL_SIZE, y * CELL_SIZE]
 
-    getBallScreenPos: (x, y) ->
-        [resX, resY] = @getCellScreenPos(x, y)
-        offset = (CELL_SIZE - BALL_SIZE) / 2
-        return [resX + offset, resY + offset]
+    updateBallScreenPos: (ball) ->
+        [resX, resY] = @getCellScreenPos(ball.gridX, ball.gridY)
+        offset = (CELL_SIZE - BALL_SIZE * ball.scaleFactor) / 2
+        ball.setPosition(resX + offset, resY + offset)
 
     onMouseDown: (b, x, y) ->
         return if b isnt gamvas.mouse.LEFT
