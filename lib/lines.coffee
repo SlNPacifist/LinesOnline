@@ -4,8 +4,20 @@ BALL_ANIMATION_FRAME_COUNT = 8
 BALL_ANIMATION_FPS = 10
 COL_COUNT = 9
 LINE_COUNT = 9
+BALL_COUNT_AT_START = 5
+BALL_COUNT_PER_MOVE = 3
+PREPARED_BALL_SCALE_FACTOR = 0.5
 
 BALL_COLORS = ['blue', 'green', 'pink', 'red', 'teal', 'yellow']
+
+PreparedBallState = gamvas.ActorState.extend
+    enter: ->
+        @actor.setAnimation('usual')
+        @actor.setScale(PREPARED_BALL_SCALE_FACTOR)
+
+    leave: ->
+        console.log("Leaving prepared ball state")
+        @actor.setScale(1)
 
 ActiveBallState = gamvas.ActorState.extend
     enter: ->
@@ -23,6 +35,7 @@ Ball = gamvas.Actor.extend
         @addAnimation(new gamvas.Animation('active', resource.getImage(imageName), BALL_SIZE, BALL_SIZE, BALL_ANIMATION_FRAME_COUNT, BALL_ANIMATION_FPS))
         @addAnimation(new gamvas.Animation('usual', resource.getImage(imageName), BALL_SIZE, BALL_SIZE, 1))
         @addState(new ActiveBallState('active'))
+        @addState(new PreparedBallState('prepared'))
         @addState(new UsualBallState('usual'), true)
 
 Cell = gamvas.Actor.extend
@@ -47,7 +60,7 @@ class BallGrid
         @cells = @getGrid(@width)
         for i in [0...@width]
             for j in [0...@height]
-                [x, y] = @parent.getCellPos(i, j)
+                [x, y] = @parent.getCellScreenPos(i, j)
                 cell = new Cell(false, x, y)
                 @cells[i][j] = cell
                 @parent.addActor(cell)
@@ -131,30 +144,50 @@ class BallGrid
         grid = @getReachGrid(startX, startY)
         return grid[endX][endY]?
 
+extractRandom = (array) ->
+    # extracts random element from array, deletes it in array and returns it
+    index = Math.floor(Math.random() * array.length)
+    res = array[index]
+    array[index..index] = []
+    return res
 
 GameState = gamvas.State.extend
     init: ->
         @gridPosClicks = []
+        @preparedBalls = []
         @grid = new BallGrid(COL_COUNT, LINE_COUNT, @)
-        @addRandomBalls(5)
+        @addBallsToGrid(@createRandomBalls(BALL_COUNT_AT_START))
+        @prepareBallsToAdd()
         @camera.setPosition(CELL_SIZE * COL_COUNT / 2, CELL_SIZE * LINE_COUNT / 2)
 
-    addRandomBalls: (num) ->
-        @addRandomBall() for i in [1..num]
-
-    addRandomBall: ->
+    createRandomBalls: (num) ->
+        res = []
         freePositions = @grid.getFreePositions()
-        posIndex = Math.floor(Math.random() * freePositions.length)
-        [x, y] = freePositions[posIndex]
-        colorIndex = Math.floor(Math.random() * BALL_COLORS.length)
-        color = BALL_COLORS[colorIndex]
-        @addBall(x, y, color)
+        for i in [1..num]
+            [x, y] = extractRandom(freePositions)
+            colorIndex = Math.floor(Math.random() * BALL_COLORS.length)
+            color = BALL_COLORS[colorIndex]
+            res.push(@createBall(x, y, color))
+        return res
 
-    addBall: (x, y, color) ->
-        [screenX, screenY] = @getBallPos(x, y)
-        ball = new Ball(false, screenX, screenY, color)
+    createBall: (x, y, color) ->
+        [screenX, screenY] = @getBallScreenPos(x, y)
+        return new Ball(false, screenX, screenY, color)
+
+    addBallsToGrid: (balls) ->
+        @addBallToGrid(ball) for ball in balls
+
+    addBallToGrid: (ball) ->
         @addActor(ball)
+        [x, y] = @getGridPos(ball.position.x, ball.position.y)
         @grid.add(x, y, ball)
+
+    prepareBallsToAdd: ->
+        newBalls = @createRandomBalls(BALL_COUNT_PER_MOVE)
+        for ball in newBalls
+            ball.setState('prepared')
+            @addActor(ball)
+            @preparedBalls.push(ball)
 
     removeBall: (x, y) ->
         return if not ball = @grid.get(x, y)
@@ -171,8 +204,37 @@ GameState = gamvas.State.extend
                 continue if not @grid.canReach(activeX, activeY, x, y)
                 @setBallPos(@activeBall, x, y)
                 @setActiveBall(null)
-                @addRandomBalls(3)
+                @addPreparedBalls()
+                @prepareBallsToAdd()
         @gridPosClicks = []
+
+    replaceBalls: (ballsToReplace, fixedBalls) ->
+        freePositions = @grid.getFreePositions()
+        for ball in fixedBalls
+            # Removed fixed ball's position from list of possible positions
+            [x, y] = @getGridPos(ball.position.x, ball.position.y)
+            for [curX, curY], index in freePositions when curX is x and curY is y
+                break
+            freePositions[index..index] = []
+        for ball in ballsToReplace
+            # Find new place for ball
+            [x, y] = extractRandom(freePositions)
+            [screenX, screenY] = @getBallScreenPos(x, y)
+            ball.setPosition(screenX, screenY)
+
+    addPreparedBalls: ->
+        ballsToReplace = []
+        fixedBalls = []
+        for ball in @preparedBalls
+            ball.setState('usual')
+            [x, y] = @getGridPos(ball.position.x, ball.position.y)
+            if @grid.get(x, y)
+                ballsToReplace.push(ball)
+            else
+                fixedBalls.push(ball)
+        @replaceBalls(ballsToReplace, fixedBalls) if ballsToReplace
+        @addBallsToGrid(@preparedBalls)
+        @preparedBalls = []
 
     setActiveBall: (ball) ->
         @activeBall?.setState('usual')
@@ -182,7 +244,7 @@ GameState = gamvas.State.extend
     setBallPos: (ball, x, y) ->
         [oldX, oldY] = @getGridPos(ball.position.x, ball.position.y)
         @grid.remove(oldX, oldY)
-        [screenX, screenY] = @getBallPos(x, y)
+        [screenX, screenY] = @getBallScreenPos(x, y)
         ball.setPosition(screenX, screenY)
         @grid.add(x, y, ball)
 
@@ -192,11 +254,11 @@ GameState = gamvas.State.extend
         return [x, y] if 0 <= x < COL_COUNT and 0 <= y < LINE_COUNT
         return null
 
-    getCellPos: (x, y) ->
+    getCellScreenPos: (x, y) ->
         [x * CELL_SIZE, y * CELL_SIZE]
 
-    getBallPos: (x, y) ->
-        [resX, resY] = @getCellPos(x, y)
+    getBallScreenPos: (x, y) ->
+        [resX, resY] = @getCellScreenPos(x, y)
         offset = (CELL_SIZE - BALL_SIZE) / 2
         return [resX + offset, resY + offset]
 
