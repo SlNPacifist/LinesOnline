@@ -1,4 +1,4 @@
-GRID_SIZE = 50
+CELL_SIZE = 52
 BALL_SIZE = 48
 BALL_ANIMATION_FRAME_COUNT = 8
 BALL_ANIMATION_FPS = 10
@@ -25,6 +25,11 @@ Ball = gamvas.Actor.extend
         @addState(new ActiveBallState('active'))
         @addState(new UsualBallState('usual'), true)
 
+Cell = gamvas.Actor.extend
+    create: (name, x, y) ->
+        @_super(name, x, y)
+        @setFile(gamvas.state.getCurrentState().resource.getImage('cell.png'))
+
 class BallGrid
     # List of possible directions to check lines from newly appeared ball
     # list of [dx, dy]
@@ -36,6 +41,16 @@ class BallGrid
 
     constructor: (@width, @height, @parent) ->
         @container = @getGrid(@width)
+        @initCells()
+
+    initCells: ->
+        @cells = @getGrid(@width)
+        for i in [0...@width]
+            for j in [0...@height]
+                [x, y] = @parent.getCellPos(i, j)
+                cell = new Cell(false, x, y)
+                @cells[i][j] = cell
+                @parent.addActor(cell)
 
     getGrid: (width) ->
         res = []
@@ -122,7 +137,7 @@ GameState = gamvas.State.extend
         @gridPosClicks = []
         @grid = new BallGrid(COL_COUNT, LINE_COUNT, @)
         @addRandomBalls(5)
-        @camera.setPosition(GRID_SIZE * COL_COUNT / 2, GRID_SIZE * LINE_COUNT / 2)
+        @camera.setPosition(CELL_SIZE * COL_COUNT / 2, CELL_SIZE * LINE_COUNT / 2)
 
     addRandomBalls: (num) ->
         @addRandomBall() for i in [1..num]
@@ -136,10 +151,15 @@ GameState = gamvas.State.extend
         @addBall(x, y, color)
 
     addBall: (x, y, color) ->
-        [screenX, screenY] = @getScreenPos(x, y)
+        [screenX, screenY] = @getBallPos(x, y)
         ball = new Ball(false, screenX, screenY, color)
         @addActor(ball)
         @grid.add(x, y, ball)
+
+    removeBall: (x, y) ->
+        return if not ball = @grid.get(x, y)
+        @removeActor(ball)
+        @grid.remove(x, y)
 
     draw: ->
         for pos in @gridPosClicks
@@ -162,23 +182,23 @@ GameState = gamvas.State.extend
     setBallPos: (ball, x, y) ->
         [oldX, oldY] = @getGridPos(ball.position.x, ball.position.y)
         @grid.remove(oldX, oldY)
-        [screenX, screenY] = @getScreenPos(x, y)
+        [screenX, screenY] = @getBallPos(x, y)
         ball.setPosition(screenX, screenY)
         @grid.add(x, y, ball)
 
     getGridPos: (x, y) ->
-        x = Math.floor(x / GRID_SIZE)
-        y = Math.floor(y / GRID_SIZE)
+        x = Math.floor(x / CELL_SIZE)
+        y = Math.floor(y / CELL_SIZE)
         return [x, y] if 0 <= x < COL_COUNT and 0 <= y < LINE_COUNT
         return null
 
-    getScreenPos: (x, y) ->
-        [x * GRID_SIZE, y * GRID_SIZE]
+    getCellPos: (x, y) ->
+        [x * CELL_SIZE, y * CELL_SIZE]
 
-    removeBall: (x, y) ->
-        return if not ball = @grid.get(x, y)
-        @removeActor(ball)
-        @grid.remove(x, y)
+    getBallPos: (x, y) ->
+        [resX, resY] = @getCellPos(x, y)
+        offset = (CELL_SIZE - BALL_SIZE) / 2
+        return [resX + offset, resY + offset]
 
     onMouseDown: (b, x, y) ->
         return if b isnt gamvas.mouse.LEFT
