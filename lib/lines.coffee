@@ -71,8 +71,12 @@ class BallGrid
         return res
 
     add: (x, y, ball) ->
+        ###
+        Adds ball to a grid and check lines removal
+        Returns true if any line was removed
+        ###
         @container[x][y] = ball
-        @checkLinesRemovalInPosition(x, y)
+        return @checkLinesRemovalInPosition(x, y)
 
     remove: (x, y) ->
         @container[x][y] = null
@@ -87,7 +91,10 @@ class BallGrid
         return res
 
     checkLinesRemovalInPosition: (x, y) ->
-        # Check lines for all possible directions
+        ###
+        Checks lines for all possible directions
+        Returns true if any line was removed
+        ###
         color = @container[x][y].color
         linesToRemove = []
         for [dx, dy] in @LINE_DIRECTIONS
@@ -100,7 +107,9 @@ class BallGrid
             startX = x + dx * dirCount
             startY = y + dy * dirCount
             linesToRemove.push([startX, startY, -dx, -dy, totalCount])
+        return false if not linesToRemove.length
         @removeLine(line...) for line in linesToRemove
+        return true
 
     getMaxBallCount: (x, y, dx, dy, neededColor) ->
         # Counts number of successive balls in a line starting from x, y in a direction dx, dy
@@ -202,8 +211,9 @@ GameState = gamvas.State.extend
             else if @activeBall
                 [activeX, activeY] = @getGridPos(@activeBall.position.x, @activeBall.position.y)
                 continue if not @grid.canReach(activeX, activeY, x, y)
-                @setBallPos(@activeBall, x, y)
+                lineRemoved = @setBallPos(@activeBall, x, y)
                 @setActiveBall(null)
+                continue if lineRemoved
                 @addPreparedBalls()
                 @prepareBallsToAdd()
         @gridPosClicks = []
@@ -242,11 +252,15 @@ GameState = gamvas.State.extend
         ball?.setState('active')
 
     setBallPos: (ball, x, y) ->
+        ###
+        Sets ball position
+        Returns true if any line was removed due to this action
+        ###
         [oldX, oldY] = @getGridPos(ball.position.x, ball.position.y)
         @grid.remove(oldX, oldY)
         [screenX, screenY] = @getBallScreenPos(x, y)
         ball.setPosition(screenX, screenY)
-        @grid.add(x, y, ball)
+        return @grid.add(x, y, ball)
 
     getGridPos: (x, y) ->
         x = Math.floor(x / CELL_SIZE)
