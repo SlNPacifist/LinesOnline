@@ -16,7 +16,6 @@ PreparedBallState = gamvas.ActorState.extend
         @actor.setScale(PREPARED_BALL_SCALE_FACTOR)
 
     leave: ->
-        console.log("Leaving prepared ball state")
         @actor.setScale(1)
 
 ActiveBallState = gamvas.ActorState.extend
